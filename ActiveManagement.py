@@ -92,10 +92,13 @@ def long_short_optimization(covariance_matrix, alphas, betas):
     q = alphas.values
     A = np.vstack([np.ones(len(alphas)), list(betas.values)])
     b = np.array([1,1])
-    G = np.eye(len(alphas))
-    h = np.ones(len(alphas))
-
-    weights_long_short = solve_qp(P, q, G, h, A, b, solver='osqp', max_iter=500)
+    G_long = np.eye(len(alphas))
+    G_short = -np.eye(len(alphas))
+    h_long = np.ones(len(alphas))
+    h_short = np.ones(len(alphas))
+    G_combined = np.vstack([G_long, G_short])  # Add long-short bounds
+    h_combined = np.hstack([h_long, h_short])
+    weights_long_short = solve_qp(P, q, G_combined, h_combined, A, b, solver='osqp', max_iter=800)
     return weights_long_short 
 
 def mix_optimization(covariance_matrix, alphas, betas):
@@ -110,23 +113,39 @@ def mix_optimization(covariance_matrix, alphas, betas):
     G_combined = np.vstack([G_long, G_short])  # Add long-short bounds
     h_combined = np.hstack([h_long, h_short])
 
-    weights_mix = solve_qp(P, q, G_combined, h_combined, A, b, solver='osqp', max_iter=500)
+    weights_mix = solve_qp(P, q, G_combined, h_combined, A, b, solver='osqp', max_iter=800)
     return weights_mix
 
 def calculate_returns(test_data, sp500_test_data, weights):
-    portfolio_returns = test_data.pct_change().dot(weights)
-    sp500_returns = sp500_test_data.pct_change()
+    portfolio_returns = test_data.pct_change().dot(weights).dropna()
+    sp500_returns = sp500_test_data.pct_change().dropna()
 
     portfolio_cum_returns = (1 + portfolio_returns).cumprod()
     sp500_cum_returns = (1 + sp500_returns).cumprod()
     return portfolio_cum_returns, sp500_cum_returns
 
-def visualisation(portfolio_cum_returns, sp500_cum_returns, title):
-    plt.plot(portfolio_cum_returns, label="Portfolio")
+def visualisation(portfolio_cum_returns, sp500_cum_returns, fig_name, vers, isRolling):
+    strategy = ""
+    title = ""
+    if(vers == 0):
+        strategy = "Long Only Portfolio"
+    elif(vers == 1):
+        strategy = "Long-Short Portfolio"
+    else:
+        strategy = "130/30 Long-Short Portfolio"
+    if(isRolling == 0):
+        title = "Out of Sample Returns (Not Rolling)"
+    else:
+        title = "Rolling Window Returns (Quarterly Reblancing)"
+    plt.figure(figsize=(10,6))
+    plt.plot(portfolio_cum_returns, label=strategy)
     plt.plot(sp500_cum_returns, label="S&P 500")
     plt.legend()
-    plt.title("Out-of-Sample Performance")
-    plt.savefig(title)
+    plt.title(strategy + " " + title)
+    plt.ylabel("% Returns")
+    plt.xlabel("Time")
+    plt.grid(visible=True, axis='both', which='both', alpha=0.2)
+    plt.savefig(fig_name)
     plt.clf()
     return -1
 
@@ -183,68 +202,13 @@ def rolling_window(n_days, window_len, n_windows, price_data, sp500_data):
     print(mix_portfolio_cum_returns)
     print(sp500_cum_returns)
 
-    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Only_Chart.pdf")
-    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Short_Chart.pdf")
-    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "Rolling_Mix_Chart.pdf")
+    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Only_Chart.jpg", 0, 1)
+    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Short_Chart.jpg", 1, 1)
+    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "Rolling_Mix_Chart.jpg", 2, 1)
 
     print(skip_counter)
 
     return -1
-'''
-    for i in range(n_windows-1):
-        start = i*window_len
-        in_sample_market = price_data[start : start+window_len]
-        out_sample_market = price_data[start+window_len : start+(2*window_len)]
-
-        in_sample_sp500 = sp500_data[start : start+window_len]
-        out_sample_sp500 = sp500_data[start+window_len : start+(2*window_len)]
-
-        covariance_matrix = covariance_matrix_build(in_sample_market) 
-
-        betas = beta_estimator(in_sample_sp500, in_sample_market)
-        betas = pd.Series(betas)
-
-        alphas = momentum_calculator(in_sample_market)
-        alphas = pd.Series(alphas)
-
-        long_only_weights = long_only_optimization(covariance_matrix, alphas, betas)
-        if(long_only_weights is not None):
-            last_low = long_only_weights
-        else:
-            skip_counter += 1
-            long_only_weights = last_low
-        l_return, sp500_return = calculate_returns(out_sample_market, out_sample_sp500, long_only_weights)
-        l_portfolio_returns.append(l_return.dropna().cumprod())
-        sp500_returns.append(sp500_return.dropna().cumprod())
-        print(l_return)
-        print(sp500_return)
-        
-        long_short_weights = long_short_optimization(covariance_matrix, alphas, betas)
-        if(long_short_weights is not None):
-            last_lsw = long_short_weights
-        else:
-            skip_counter += 1
-            long_short_weights = last_lsw
-        ls_return, temp1 = calculate_returns(out_sample_market, out_sample_sp500, long_short_weights) 
-        ls_portfolio_returns.append(ls_return.dropna().cumprod())
-        print(ls_return)
-
-        mix_weights = mix_optimization(covariance_matrix, alphas, betas)
-        if(mix_weights is not None):
-            last_mw = mix_weights
-        else:
-            skip_counter += 1
-            mix_weights = last_mw
-        mix_return, temp1 = calculate_returns(out_sample_market, out_sample_sp500, mix_weights) 
-        mix_portfolio_returns.append(mix_return.dropna().cumprod())
-        print(mix_return)
-
-    l_portfolio_cum_returns = pd.concat(l_portfolio_returns)
-    ls_portfolio_cum_returns = pd.concat(ls_portfolio_returns)
-    mix_portfolio_cum_returns = pd.concat(mix_portfolio_returns)
-    sp500_cum_returns = pd.concat(sp500_returns)
-    '''
-
 
 def main():
     candidate_tickers = []
@@ -338,9 +302,9 @@ def main():
     print("* Portfolio Results Calculated")
 
     print("* Visualizing Results...")
-    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Only_Chart.pdf")
-    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Short_Chart.pdf")
-    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "NR_Mix_Chart.pdf")
+    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Only_Chart.jpg", 0, 0)
+    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Short_Chart.jpg", 1, 0)
+    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "NR_Mix_Chart.jpg", 2, 0)
     print("* Visualizations Saved")
 
     print("* Performing Rolling-Window Calculations...")
