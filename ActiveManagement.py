@@ -202,9 +202,9 @@ def rolling_window(n_days, window_len, n_windows, price_data, sp500_data):
     print(mix_portfolio_cum_returns)
     print(sp500_cum_returns)
 
-    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Only_Chart.jpg", 0, 1)
-    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "Rolling_Long_Short_Chart.jpg", 1, 1)
-    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "Rolling_Mix_Chart.jpg", 2, 1)
+    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/Rolling_Long_Only_Chart.jpg", 0, 1)
+    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/Rolling_Long_Short_Chart.jpg", 1, 1)
+    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/Rolling_Mix_Chart.jpg", 2, 1)
 
     print(skip_counter)
 
@@ -242,9 +242,9 @@ def main():
     print("* Segregation Complete")
 
     print("* Saving Datasets...")
-    price_data.to_csv("Price_Data.csv")
-    calibration_data.to_csv("Calibration_Data.csv")
-    test_data.to_csv("Test_Data.csv")
+    price_data.to_csv("Data/Price_Data/Price_Data.csv")
+    calibration_data.to_csv("Data/Calibration_Data/Calibration_Data.csv")
+    test_data.to_csv("Data/Test_Data/Test_Data.csv")
     print("* Datasets Saved")
 
     print("* Fetching Benchmark Data...")
@@ -257,9 +257,9 @@ def main():
     print("* Segregation Complete")
 
     print("* Saving Benchmark Dataset...")
-    sp500_data.to_csv("Benchmark_Data.csv")
-    sp500_calibration_data.to_csv("Benchmark_Calibration_Data.csv")
-    sp500_test_data.to_csv("Benchmark_Test_Data.csv")
+    sp500_data.to_csv("Data/Price_Data/Benchmark_Data.csv")
+    sp500_calibration_data.to_csv("Data/Calibration_Data/Benchmark_Calibration_Data.csv")
+    sp500_test_data.to_csv("Data/Test_Data/Benchmark_Test_Data.csv")
     print("* Benchmark Data Saved")
 
     print("* Building Covariance Matrix From Calibration Data...")
@@ -302,9 +302,9 @@ def main():
     print("* Portfolio Results Calculated")
 
     print("* Visualizing Results...")
-    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Only_Chart.jpg", 0, 0)
-    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "NR_Long_Short_Chart.jpg", 1, 0)
-    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "NR_Mix_Chart.jpg", 2, 0)
+    long_vis = visualisation(l_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/NR_Long_Only_Chart.jpg", 0, 0)
+    long_short_vis = visualisation(ls_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/NR_Long_Short_Chart.jpg", 1, 0)
+    mix_vis = visualisation(mix_portfolio_cum_returns, sp500_cum_returns, "Visualizations_JPG/NR_Mix_Chart.jpg", 2, 0)
     print("* Visualizations Saved")
 
     print("* Performing Rolling-Window Calculations...")
