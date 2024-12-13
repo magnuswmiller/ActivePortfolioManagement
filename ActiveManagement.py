@@ -23,7 +23,7 @@ def fetch_and_filter_data(tickers):
             avg_volume = stock.info.get("averageVolume", 0)
             current_price = stock.info.get("currentPrice", 0)
 
-            if((market_cap >= 2e6) & (avg_volume*current_price >= 20e6)):
+            if((market_cap >= 2e9) & (avg_volume*current_price >= 20e6)):
                 data = stock.history(period="5y")
                 print("\t" + ticker + " --> Successful")
                 if(not data.empty):
