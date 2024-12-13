@@ -58,15 +58,19 @@ def beta_estimator(spx500_calibration_data, calibration_data):
 
     for stock in returns.columns:
         model = LinearRegression()
-        '''
-        print(spx_returns.values.reshape(-1,1))
-        print(len(spx_returns.values))
-        print(len(returns[stock].values))
-        print(returns[stock].values)
-        '''
         model.fit(np.array(spx_returns).reshape(-1,1), returns[stock].values)
         betas[stock] = float(model.coef_[0])
     return betas
+
+def momentum_calculator(calibration_data):
+    returns = calibration_data.pct_change().dropna()
+    alphas = {}
+
+    momentum = returns[-60:].mean()
+    momentum_rank = momentum.rank(ascending=False)
+    alpha = momentum_rank/len(momentum_rank)
+    alphas = alpha.to_dict()
+    return alphas
 
 def main():
     candidate_tickers = []
@@ -122,13 +126,40 @@ def main():
 
     print("* Building Covariance Matrix From Calibration Data...")
     covariance_matrix = covariance_matrix_build(calibration_data)
-    print(covariance_matrix)
+    print(covariance_matrix.to_string())
     print("* Covariance Matrix Constructed")
 
     print("* Estimating Betas...")
     betas = beta_estimator(sp500_calibration_data, calibration_data)
-    print(betas)
-    print("* Beta Estimation complete")
+    for key, value in betas.items():
+        print("\t", key, ": ", value)
+    print("* Beta Estimation Complete")
+
+    print("* Calculating Alphas...")
+    alphas = momentum_calculator(calibration_data)
+    for key, value in alphas.items():
+        print("\t", key, ": ", value)
+    print("* Alpha Estimation Complete")
+
+    print("* Building Long Only Optimization...")
+    '''
+    print("* Long Only Optimization Complete")
+
+    print("* Builing Long-Short Optimization...")
+    print("* Long-Short Optimization Complete")
+
+    print("* Builing 130/30 Optimization...")
+    print("* 130/30 Optimization Complete")
+
+    print("* Calculating Portfolio Restults...")
+    print("* Portfolio Results Calculated")
+
+    print("* Visualizing Results...")
+    print("* Visualizations Saved")
+
+    print("* Performing Rolling-Window Calculations...")
+    print("* Rolling-Window Calculations Complete")
+    '''
     
 
     print("------------------------- End of Program -------------------------")
