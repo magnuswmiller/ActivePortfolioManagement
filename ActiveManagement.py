@@ -7,6 +7,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import csv
+from sklearn.linear_model import LinearRegression
 
 def fetch_and_filter_data(tickers):
     selected_tickers = []
@@ -31,6 +32,41 @@ def fetch_and_filter_data(tickers):
     
     return selected_tickers, pd.DataFrame(historical_data)
 
+def fetch_and_filter_benchmark():
+    sp500 = yf.Ticker("^GSPC")
+    try:
+        sp500_data = sp500.history(period='5y')["Close"]
+        return pd.DataFrame(sp500_data)
+    except Exception as e:
+        print(f"Error fetching S&P 500 data: {e}")
+    return -1
+
+def covariance_matrix_build(calibration_data):
+    returns = calibration_data.pct_change().dropna()
+    covariance_matrix = returns.cov()
+    return covariance_matrix
+
+def beta_estimator(spx500_calibration_data, calibration_data):
+    temp_spx_returns = spx500_calibration_data.pct_change().dropna()
+    temp_spx_returns = temp_spx_returns.to_numpy()
+    returns = calibration_data.pct_change().dropna()
+    betas = {}
+
+    spx_returns = []
+    for i in range(len(temp_spx_returns)):
+        spx_returns.append(float(temp_spx_returns[i][0]))
+
+    for stock in returns.columns:
+        model = LinearRegression()
+        '''
+        print(spx_returns.values.reshape(-1,1))
+        print(len(spx_returns.values))
+        print(len(returns[stock].values))
+        print(returns[stock].values)
+        '''
+        model.fit(np.array(spx_returns).reshape(-1,1), returns[stock].values)
+        betas[stock] = float(model.coef_[0])
+    return betas
 
 def main():
     candidate_tickers = []
@@ -64,9 +100,35 @@ def main():
     print("* Segregation Complete")
 
     print("* Saving Datasets...")
+    price_data.to_csv("Price_Data.csv")
     calibration_data.to_csv("Calibration_Data.csv")
     test_data.to_csv("Test_Data.csv")
-    print("* Saving Datasets Complete")
+    print("* Datasets Saved")
+
+    print("* Fetching Benchmark Data...")
+    sp500_data = fetch_and_filter_benchmark()
+
+    print("* Segregating Benchmark Data...")
+    m = len(sp500_data)
+    sp500_calibration_data = sp500_data.iloc[:int(m*0.6)]
+    sp500_test_data = sp500_data.iloc[int(m*0.6):]
+    print("* Segregation Complete")
+
+    print("* Saving Benchmark Dataset...")
+    sp500_data.to_csv("Benchmark_Data.csv")
+    sp500_calibration_data.to_csv("Benchmark_Calibration_Data.csv")
+    sp500_test_data.to_csv("Benchmark_Test_Data.csv")
+    print("* Benchmark Data Saved")
+
+    print("* Building Covariance Matrix From Calibration Data...")
+    covariance_matrix = covariance_matrix_build(calibration_data)
+    print(covariance_matrix)
+    print("* Covariance Matrix Constructed")
+
+    print("* Estimating Betas...")
+    betas = beta_estimator(sp500_calibration_data, calibration_data)
+    print(betas)
+    print("* Beta Estimation complete")
     
 
     print("------------------------- End of Program -------------------------")
